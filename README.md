@@ -77,7 +77,7 @@ All management is done seamlessly via Slash Commands. **Only the Server Owner** 
 
 ## 🤝 Contributing
 Contributions, issues, and feature requests are welcome! 
-Feel free to check [issues page](https://github.com/yourusername/advanced-discord-guard/issues). 
+Feel free to check [issues page](https://github.com/MrRubby/advanced-discord-guard/issues). 
 
 ## 📜 License
 Distributed under the MIT License. See `LICENSE` for more information.
