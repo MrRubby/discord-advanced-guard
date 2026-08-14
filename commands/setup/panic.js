@@ -1,6 +1,7 @@
 const { SlashCommandBuilder, PermissionFlagsBits, ChannelType } = require('discord.js');
 const GuildSettings = require('../../database/models/GuildSettings');
 const { updateSettingsCache } = require('../../utils/cacheManager');
+const messages = require('../../messages.json');
 const { addToQueue } = require('../../utils/actionQueue');
 
 module.exports = {
@@ -20,7 +21,7 @@ module.exports = {
         
     async execute(interaction) {
         if (interaction.user.id !== interaction.guild.ownerId) {
-            return interaction.reply({ content: '❌ Bu komutu sadece **Sunucu Sahibi** kullanabilir!', ephemeral: true });
+            return interaction.reply({ content: messages.errors.onlyOwner, ephemeral: true });
         }
 
         const status = interaction.options.getString('status');
@@ -37,32 +38,40 @@ module.exports = {
             updateSettingsCache(interaction.guildId, settings);
 
             const channels = interaction.guild.channels.cache.filter(c => c.type === ChannelType.GuildText);
+            const channelArray = Array.from(channels.values());
             
             if (isPanic) {
-                await interaction.editReply({ content: '🚨 **PANIC MODE AKTİF EDİLDİ!** Sunucudaki tüm metin kanalları @everyone için kilitleniyor ve sunucu girişleri kapatılıyor...' });
+                await interaction.editReply({ content: messages.commands.panic.activated });
                 
-                channels.forEach(channel => {
-                    addToQueue(async () => {
-                        await channel.permissionOverwrites.edit(interaction.guild.roles.everyone, {
+                // Discord API Rate-Limit (Spam) engellemek için 10'arlı gruplar halinde (Batch) işlem yapıyoruz.
+                // Ana `actionQueue`yu meşgul etmemek için işlemi kendi içinde asenkron hallediyoruz.
+                for (let i = 0; i < channelArray.length; i += 10) {
+                    const batch = channelArray.slice(i, i + 10);
+                    await Promise.all(batch.map(channel => 
+                        channel.permissionOverwrites.edit(interaction.guild.roles.everyone, {
                             SendMessages: false
-                        }).catch(() => null);
-                    });
-                });
+                        }).catch(() => null)
+                    ));
+                    // Diğer gruba geçmeden önce 1 saniye (1000ms) bekle
+                    if (i + 10 < channelArray.length) await new Promise(r => setTimeout(r, 1000));
+                }
             } else {
-                await interaction.editReply({ content: '✅ **PANIC MODE KAPATILDI!** Sunucudaki metin kanallarının kilidi @everyone için açılıyor ve girişler normale döndürülüyor...' });
+                await interaction.editReply({ content: messages.commands.panic.deactivated });
                 
-                channels.forEach(channel => {
-                    addToQueue(async () => {
-                        await channel.permissionOverwrites.edit(interaction.guild.roles.everyone, {
+                for (let i = 0; i < channelArray.length; i += 10) {
+                    const batch = channelArray.slice(i, i + 10);
+                    await Promise.all(batch.map(channel => 
+                        channel.permissionOverwrites.edit(interaction.guild.roles.everyone, {
                             SendMessages: null // Varsayılan haline (nötr) döndür
-                        }).catch(() => null);
-                    });
-                });
+                        }).catch(() => null)
+                    ));
+                    if (i + 10 < channelArray.length) await new Promise(r => setTimeout(r, 1000));
+                }
             }
 
         } catch (error) {
             console.error('Panic komutu hatası:', error);
-            await interaction.editReply({ content: 'İşlem sırasında hata oluştu.' });
+            await interaction.editReply({ content: messages.errors.databaseError });
         }
     },
 };

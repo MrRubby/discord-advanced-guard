@@ -2,6 +2,7 @@ const { Events, AuditLogEvent } = require('discord.js');
 const { getSettings } = require('../../utils/cacheManager');
 const { addToQueue } = require('../../utils/actionQueue');
 const { punishAndLog, checkBypass } = require('../utils/guardHelper');
+const messages = require('../../messages.json');
 
 module.exports = {
     name: Events.ChannelDelete,
@@ -13,11 +14,15 @@ module.exports = {
             const settings = getSettings(channel.guild.id);
             if (!settings || !settings.antiChannel) return;
 
-            const auditLogs = await channel.guild.fetchAuditLogs({ type: AuditLogEvent.ChannelDelete, limit: 1 }).catch(() => null);
+            // Logun düşmesi için kısa bir süre bekle (Race condition önlemi)
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            const auditLogs = await channel.guild.fetchAuditLogs({ type: AuditLogEvent.ChannelDelete, limit: 5 }).catch(() => null);
             if (!auditLogs) return;
 
-            const logEntry = auditLogs.entries.first();
-            if (!logEntry || logEntry.target.id !== channel.id) return;
+            // Son 5 log içinde sildiğimiz kanalı bul
+            const logEntry = auditLogs.entries.find(entry => entry.target.id === channel.id);
+            if (!logEntry) return;
 
             const executorId = logEntry.executorId;
 
@@ -28,9 +33,9 @@ module.exports = {
                     channel.guild,
                     executorId,
                     settings,
-                    'Güvenlik İhlali: Kanal Silinmesi (Anti-Channel)',
-                    'Bir yetkili izinsiz şekilde kanal sildiği için rolleri alındı ve kanal aynı özelliklerle geri açıldı!',
-                    [{ name: '❌ Silinen Kanal', value: `\`${channel.name}\` (\`${channel.id}\`)`, inline: false }]
+                    messages.events.antiChannel.logTitle,
+                    messages.events.antiChannel.logDescription,
+                    [{ name: messages.events.antiChannel.fieldDeletedChannel, value: `\`${channel.name}\` (\`${channel.id}\`)`, inline: false }]
                 );
 
                 // Kanalı geri oluştur
@@ -49,7 +54,7 @@ module.exports = {
                         type: overwrite.type
                     })),
                     position: channel.rawPosition,
-                    reason: 'Guard Bot: Silinen kanal geri yüklendi.'
+                    reason: messages.events.antiChannel.restoreReason
                 }).catch(err => console.error('Kanal geri açma hatası:', err));
             });
 

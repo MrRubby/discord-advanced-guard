@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const GuildSettings = require('../../database/models/GuildSettings');
+const messages = require('../../messages.json');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -20,9 +21,8 @@ module.exports = {
         ),
         
     async execute(interaction) {
-        // Sunucu sahibi kontrolü
         if (interaction.user.id !== interaction.guild.ownerId) {
-            return interaction.reply({ content: '❌ Bu komutu sadece **Sunucu Sahibi** kullanabilir!', ephemeral: true });
+            return interaction.reply({ content: messages.errors.onlyOwner, ephemeral: true });
         }
 
         await interaction.deferReply({ ephemeral: true });
@@ -41,27 +41,27 @@ module.exports = {
 
             if (subcommand === 'add') {
                 if (settings.whitelist.includes(targetUser.id)) {
-                    return interaction.editReply({ content: `⚠️ ${targetUser} zaten whitelist'te bulunuyor.` });
+                    return interaction.editReply({ content: messages.commands.whitelist.alreadyIn.replace('{user}', targetUser) });
                 }
                 settings.whitelist.push(targetUser.id);
                 await settings.save();
                 updateSettingsCache(interaction.guildId, settings);
-                return interaction.editReply({ content: `✅ ${targetUser} başarıyla whitelist'e **eklendi**.` });
+                return interaction.editReply({ content: messages.commands.whitelist.added.replace('{user}', targetUser) });
             } 
             
             if (subcommand === 'remove') {
                 if (!settings.whitelist.includes(targetUser.id)) {
-                    return interaction.editReply({ content: `⚠️ ${targetUser} whitelist'te bulunmuyor.` });
+                    return interaction.editReply({ content: messages.commands.whitelist.notFound.replace('{user}', targetUser) });
                 }
                 settings.whitelist = settings.whitelist.filter(id => id !== targetUser.id);
                 await settings.save();
                 updateSettingsCache(interaction.guildId, settings);
-                return interaction.editReply({ content: `✅ ${targetUser} başarıyla whitelist'ten **çıkarıldı**.` });
+                return interaction.editReply({ content: messages.commands.whitelist.removed.replace('{user}', targetUser) });
             }
 
         } catch (error) {
             console.error('Whitelist komutu hatası:', error);
-            await interaction.editReply({ content: 'İşlem sırasında bir veritabanı hatası oluştu.' });
+            await interaction.editReply({ content: messages.errors.databaseError });
         }
     },
 };

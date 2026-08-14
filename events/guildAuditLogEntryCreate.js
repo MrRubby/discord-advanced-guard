@@ -1,5 +1,7 @@
 const { Events, AuditLogEvent, EmbedBuilder } = require('discord.js');
 const { getSettings } = require('../../utils/cacheManager');
+const { punishAndLog } = require('../../utils/guardHelper');
+const messages = require('../../messages.json');
 const { addToQueue } = require('../../utils/actionQueue');
 const ModeratorStat = require('../../database/models/ModeratorStat');
 
@@ -44,36 +46,39 @@ module.exports = {
                     const executorMember = await guild.members.fetch(executorId).catch(() => null);
                     
                     if (executorMember) {
-                        // Yetkilinin yönetilebilir tüm rollerini al
+                        // Yetkilinin yönetilebilir tüm rollerini al (Managed rolleri filtrele)
                         const rolesToRemove = executorMember.roles.cache.filter(role => 
                             role.id !== guild.id && // @everyone rolünü alma
+                            !role.managed &&
                             role.position < guild.members.me.roles.highest.position // Botun rolünden düşük olanlar
                         );
 
                         if (rolesToRemove.size > 0) {
-                            await executorMember.roles.remove(rolesToRemove, 'Guard Bot: Günlük ban limitini aştı.')
-                                .catch(err => console.error('Rol alma hatası:', err));
+                            try {
+                                await executorMember.roles.remove(rolesToRemove, 'Guard Bot: Günlük ban limitini aştı.');
+                            } catch (err) {
+                                console.error('Toplu rol alma hatası, tek tek deneniyor:', err);
+                                for (const role of rolesToRemove.values()) {
+                                    await executorMember.roles.remove(role, 'Guard Bot: Günlük ban limitini aştı. (Fail-Safe)').catch(() => null);
+                                }
+                            }
                         }
                     }
 
                     // Log kanalına şık bir bildirim gönder
                     if (settings.guard_log_channel) {
-                        const logChannel = guild.channels.cache.get(settings.guard_log_channel);
-                        if (logChannel && logChannel.isTextBased()) {
-                            const embed = new EmbedBuilder()
-                                .setTitle('🚨 Güvenlik Uyarısı: Limit Aşımı!')
-                                .setColor('Red')
-                                .setDescription(`Bir yetkili belirlenen günlük ban limitini aştığı için güvenlik amacıyla rolleri alındı!`)
-                                .addFields(
-                                    { name: '👤 Yetkili', value: `<@${executorId}> (\`${executorId}\`)`, inline: true },
-                                    { name: '📊 Ban Limiti Durumu', value: `${stat.banCount} / ${limit}`, inline: true },
-                                    { name: '⛔ Son Banlanan Kullanıcı', value: `<@${targetId}> (\`${targetId}\`)`, inline: true }
-                                )
-                                .setTimestamp()
-                                .setFooter({ text: 'Guard Bot Sistem Koruması' });
-
-                            await logChannel.send({ embeds: [embed] }).catch(err => console.error('Log gönderme hatası:', err));
-                        }
+                        await punishAndLog(
+                            guild,
+                            executorId,
+                            settings,
+                            messages.events.banLimit.embedTitle,
+                            messages.events.banLimit.embedDesc,
+                            [
+                                { name: messages.events.banLimit.fieldAuthor, value: `<@${executorId}> (\`${executorId}\`)`, inline: true },
+                                { name: messages.events.banLimit.fieldStatus, value: `${stat.banCount} / ${limit}`, inline: true },
+                                { name: messages.events.banLimit.fieldTarget, value: `<@${targetId}> (\`${targetId}\`)`, inline: true }
+                            ]
+                        );
                     }
                 });
             }

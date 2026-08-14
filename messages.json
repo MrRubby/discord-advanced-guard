@@ -1,0 +1,102 @@
+{
+  "botActivity": {
+    "text": "🛡️ Sunucuyu Koruyor",
+    "type": "Playing"
+  },
+  "errors": {
+    "onlyOwner": "❌ Bu komutu sadece **Sunucu Sahibi** kullanabilir!",
+    "databaseError": "Ayarlar kaydedilirken bir veritabanı hatası oluştu."
+  },
+  "commands": {
+    "filter": {
+      "wordAlreadyBlocked": "⚠️ **{word}** zaten yasaklı kelimeler listesinde bulunuyor.",
+      "wordAdded": "✅ **{word}** başarıyla yasaklı kelimeler listesine eklendi.",
+      "wordNotFound": "⚠️ **{word}** yasaklı kelimeler listesinde bulunamadı.",
+      "wordRemoved": "✅ **{word}** başarıyla yasaklı kelimeler listesinden çıkarıldı.",
+      "roleAlreadyBypass": "⚠️ {role} zaten muaf roller listesinde.",
+      "roleBypassAdded": "✅ {role} rolü filtreden **muaf** tutuldu.",
+      "roleBypassNotFound": "⚠️ {role} muaf roller listesinde bulunamadı.",
+      "roleBypassRemoved": "✅ {role} rolü muafiyet listesinden çıkarıldı."
+    },
+    "panic": {
+      "activated": "🚨 **PANIC MODE AKTİF EDİLDİ!** Sunucudaki tüm metin kanalları @everyone için kilitleniyor...",
+      "deactivated": "✅ **PANIC MODE KAPATILDI!** Sunucudaki metin kanallarının kilidi @everyone için açılıyor..."
+    },
+    "setup": {
+      "successTitle": "✅ **Sunucu koruma ve moderasyon ayarları başarıyla güncellendi!**\n\n**Güncel Ayarlar:**\n",
+      "notSet": "Ayarlandı değil",
+      "banRole": "- Ban Yetkili Rolü: ",
+      "kickRole": "- Kick Yetkili Rolü: ",
+      "jailAuthRole": "- Jail Yetkili Rolü: ",
+      "muteRole": "- Mute Yetkili Rolü: ",
+      "jailRole": "- Jail (Mahkum) Rolü: ",
+      "logChannel": "- Log Kanalı: "
+    },
+    "toggle": {
+      "success": "✅ **{module}** modülü başarıyla **{status}** duruma getirildi.",
+      "statusTrue": "Açık (True)",
+      "statusFalse": "Kapalı (False)"
+    },
+    "whitelist": {
+      "alreadyIn": "⚠️ {user} zaten whitelist'te bulunuyor.",
+      "added": "✅ {user} başarıyla whitelist'e **eklendi**.",
+      "notFound": "⚠️ {user} whitelist'te bulunmuyor.",
+      "removed": "✅ {user} başarıyla whitelist'ten **çıkarıldı**."
+    }
+  },
+  "events": {
+    "antiChannel": {
+      "logTitle": "Güvenlik İhlali: Kanal Silinmesi (Anti-Channel)",
+      "logDescription": "Bir yetkili izinsiz şekilde kanal sildiği için rolleri alındı ve kanal aynı özelliklerle geri açıldı!",
+      "restoreReason": "Guard Bot: Silinen kanal geri yüklendi.",
+      "fieldDeletedChannel": "❌ Silinen Kanal"
+    },
+    "antiRole": {
+      "logTitle": "Güvenlik İhlali: Rol Silinmesi (Anti-Role)",
+      "logDescription": "Bir yetkili izinsiz şekilde rol sildiği için rolleri alındı ve silinen rol aynı özelliklerle tekrar oluşturuldu!",
+      "restoreReason": "Guard Bot: Silinen rol geri yüklendi.",
+      "fieldDeletedRole": "❌ Silinen Rol"
+    },
+    "antiRaid": {
+      "panicKickReason": "Guard Bot: Panic Mode aktif! Sunucu kilitlendi.",
+      "punishReason": "Guard Bot: Anti-Raid koruması (Hesap çok yeni)",
+      "actionJail": "Karantinaya (Jail) Alındı",
+      "actionKick": "Sunucudan Atıldı (Kick)",
+      "embedTitle": "🛡️ Güvenlik İhlali: Anti-Raid",
+      "embedDesc": "Yeni açılan bir hesap sunucuya girmeye çalıştı ve güvenlik amacıyla engellendi!",
+      "embedColor": "Red",
+      "fieldUser": "Kullanıcı",
+      "fieldCreatedAt": "Hesap Kuruluş",
+      "fieldAction": "Uygulanan İşlem"
+    },
+    "banLimit": {
+      "punishReason": "Guard Bot: Günlük ban limitini aştı.",
+      "embedTitle": "🚨 Güvenlik Uyarısı: Limit Aşımı!",
+      "embedDesc": "Bir yetkili belirlenen günlük ban limitini aştığı için güvenlik amacıyla rolleri alındı!",
+      "embedColor": "Red",
+      "fieldExecutor": "👤 Yetkili",
+      "fieldStatus": "📊 Ban Limiti Durumu",
+      "fieldTarget": "⛔ Son Banlanan Kullanıcı"
+    },
+    "chatFilter": {
+      "warningMessage": "⚠️ {user}, bu sunucuda **{violationType}** yasaktır! Lütfen kurallara uyun.",
+      "violationSwear": "Küfür / Kötü Söz",
+      "violationLink": "Reklam / Link Paylaşımı",
+      "embedTitle": "🛑 Filtre İhlali Tespit Edildi!",
+      "embedDesc": "Bir kullanıcının mesajı yerel filtreye takıldı ve silindi.",
+      "embedColor": "Orange",
+      "fieldUser": "👤 Kullanıcı",
+      "fieldViolation": "🏷️ İhlal Türü",
+      "fieldMessage": "💬 Silinen Mesaj"
+    }
+  },
+  "guardHelper": {
+    "roleRemoveReason": "Guard Bot: {title}",
+    "roleRemoveFailSafe": "Guard Bot: {title} (Fail-Safe)",
+    "jailReason": "Guard Bot: {title}",
+    "logTitlePrefix": "🛡️ ",
+    "logColor": "Red",
+    "logFooter": "Guard Bot Sistem Koruması",
+    "fieldExecutor": "👤 Yetkili"
+  }
+}

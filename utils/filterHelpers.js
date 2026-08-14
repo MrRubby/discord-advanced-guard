@@ -19,23 +19,46 @@ function normalizeText(text) {
         .replace(/5/g, 's')
         .replace(/7/g, 't')
         .replace(/!/g, 'i')
-        .replace(/v/g, 'u'); // duruma göre 'v' harfi 'u' veya 'ü' niyetine kullanılabilir.
+        .replace(/v/g, 'u');
 
-    // 3. Noktalama işaretlerini, özel karakterleri ve boşlukları tamamen sil
-    normalized = normalized.replace(/[^\w\sığüşöç]/gi, '').replace(/\s+/g, '');
+    // 3. Noktalama işaretlerini, özel karakterleri boşluğa çevir (kelimeleri ayırmak için)
+    normalized = normalized.replace(/[^\w\sığüşöç]/gi, ' ');
+    
+    // 4. Yan yana 3 veya daha fazla aynı harf varsa onları teke veya çifte indirgemek false-positive'i azaltır
+    // Ancak basitlik ve performans açısından temel fazladan boşlukları temizleyelim.
+    normalized = normalized.replace(/\s+/g, ' ').trim();
 
     return normalized;
 }
 
 function containsSwear(text, customWords = []) {
     const normalizedText = normalizeText(text);
+    // Cümleyi kelimelere bölelim
+    const words = normalizedText.split(' ');
+    
     const allSwearWords = [...defaultSwearWords, ...customWords];
 
     for (const word of allSwearWords) {
-        // Kelimeyi de normalize et (eğer custom eklendiyse)
-        const normalizedWord = normalizeText(word);
-        if (normalizedText.includes(normalizedWord)) {
-            return true;
+        const normalizedSwear = normalizeText(word);
+        
+        // Eğer yasaklı kelime boşluk içeriyorsa (Örn: "ana avrat")
+        if (normalizedSwear.includes(' ')) {
+            const paddedText = ` ${normalizedText} `;
+            if (paddedText.includes(` ${normalizedSwear} `)) {
+                return true;
+            }
+        } else {
+            // Yasaklı kelime tek bir kelimeyse, kelimeler dizisinde "Tam Eşleşme" (Exact Match) arayalım.
+            // Bu sayede "kalem kutusu" içindeki "mk" yakalanmaz.
+            // Sadece birisi boşluk bırakıp direkt "mk" yazarsa yakalanır.
+            if (words.includes(normalizedSwear)) {
+                return true;
+            }
+            
+            // Eğer isterseniz, ek (suffix) almış küfürleri de yakalamak için startsWith kullanabilirsiniz:
+            // if (words.some(w => w.startsWith(normalizedSwear))) return true; 
+            // Ancak bu "göt" kelimesi için "götür" kelimesini de yakalayacağı için tehlikeli olabilir.
+            // O yüzden tam eşleşme en güvenlisidir.
         }
     }
     return false;

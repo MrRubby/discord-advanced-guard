@@ -2,6 +2,7 @@ const { Events, AuditLogEvent } = require('discord.js');
 const { getSettings } = require('../../utils/cacheManager');
 const { addToQueue } = require('../../utils/actionQueue');
 const { punishAndLog, checkBypass } = require('../utils/guardHelper');
+const messages = require('../../messages.json');
 
 module.exports = {
     name: Events.GuildRoleDelete,
@@ -10,12 +11,16 @@ module.exports = {
             const settings = getSettings(role.guild.id);
             if (!settings || !settings.antiRole) return;
 
+            // Logun düşmesi için kısa bir süre bekle (Race condition önlemi)
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
             // Fetch the audit logs to find the executor
-            const auditLogs = await role.guild.fetchAuditLogs({ type: AuditLogEvent.RoleDelete, limit: 1 }).catch(() => null);
+            const auditLogs = await role.guild.fetchAuditLogs({ type: AuditLogEvent.RoleDelete, limit: 5 }).catch(() => null);
             if (!auditLogs) return;
 
-            const logEntry = auditLogs.entries.first();
-            if (!logEntry || logEntry.target.id !== role.id) return; // if it's not the exact role
+            // Son 5 log içinde sildiğimiz rolü bul
+            const logEntry = auditLogs.entries.find(entry => entry.target.id === role.id);
+            if (!logEntry) return; // if it's not the exact role
 
             const executorId = logEntry.executorId;
 
@@ -29,9 +34,9 @@ module.exports = {
                     role.guild,
                     executorId,
                     settings,
-                    'Güvenlik İhlali: Rol Silinmesi (Anti-Role)',
-                    'Bir yetkili izinsiz şekilde rol sildiği için rolleri alındı ve silinen rol aynı özelliklerle tekrar oluşturuldu!',
-                    [{ name: '❌ Silinen Rol', value: `\`${role.name}\` (\`${role.id}\`)`, inline: false }]
+                    messages.events.antiRole.logTitle,
+                    messages.events.antiRole.logDescription,
+                    [{ name: messages.events.antiRole.fieldDeletedRole, value: `\`${role.name}\` (\`${role.id}\`)`, inline: false }]
                 );
 
                 // Recreate the role
@@ -42,7 +47,7 @@ module.exports = {
                     permissions: role.permissions,
                     position: role.position,
                     mentionable: role.mentionable,
-                    reason: 'Guard Bot: Silinen rol geri yüklendi.'
+                    reason: messages.events.antiRole.restoreReason
                 }).catch(err => console.error('Rol geri açma hatası:', err));
             });
 

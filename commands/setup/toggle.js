@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const GuildSettings = require('../../database/models/GuildSettings');
+const messages = require('../../messages.json');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -26,9 +27,8 @@ module.exports = {
         ),
         
     async execute(interaction) {
-        // Sunucu sahibi kontrolü
         if (interaction.user.id !== interaction.guild.ownerId) {
-            return interaction.reply({ content: '❌ Bu komutu sadece **Sunucu Sahibi** kullanabilir!', ephemeral: true });
+            return interaction.reply({ content: messages.errors.onlyOwner, ephemeral: true });
         }
 
         const moduleName = interaction.options.getString('module');
@@ -46,14 +46,15 @@ module.exports = {
             await settings.save();
             updateSettingsCache(interaction.guildId, settings); // Cache Güncelle
 
+            const statusText = status ? messages.commands.toggle.statusTrue : messages.commands.toggle.statusFalse;
             await interaction.reply({ 
-                content: `✅ **${moduleName}** modülü başarıyla **${status ? 'Açık (True)' : 'Kapalı (False)'}** duruma getirildi.`, 
+                content: messages.commands.toggle.success.replace('{module}', moduleName).replace('{status}', statusText), 
                 ephemeral: true 
             });
 
         } catch (error) {
             console.error('Toggle komutu hatası:', error);
-            await interaction.reply({ content: 'Ayar kaydedilirken hata oluştu.', ephemeral: true });
+            await interaction.reply({ content: messages.errors.databaseError, ephemeral: true });
         }
     },
 };

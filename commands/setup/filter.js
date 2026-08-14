@@ -1,6 +1,7 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const GuildSettings = require('../../database/models/GuildSettings');
 const { updateSettingsCache } = require('../../utils/cacheManager');
+const messages = require('../../messages.json');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -38,7 +39,7 @@ module.exports = {
         
     async execute(interaction) {
         if (interaction.user.id !== interaction.guild.ownerId) {
-            return interaction.reply({ content: '❌ Bu komutu sadece **Sunucu Sahibi** kullanabilir!', ephemeral: true });
+            return interaction.reply({ content: messages.errors.onlyOwner, ephemeral: true });
         }
 
         await interaction.deferReply({ ephemeral: true });
@@ -55,22 +56,22 @@ module.exports = {
                 
                 if (subcommand === 'add') {
                     if (settings.custom_blocked_words.includes(word)) {
-                        return interaction.editReply({ content: `⚠️ **${word}** zaten yasaklı kelimeler listesinde bulunuyor.` });
+                        return interaction.editReply({ content: messages.commands.filter.wordAlreadyBlocked.replace('{word}', word) });
                     }
                     settings.custom_blocked_words.push(word);
                     await settings.save();
                     updateSettingsCache(interaction.guildId, settings);
-                    return interaction.editReply({ content: `✅ **${word}** başarıyla yasaklı kelimeler listesine eklendi.` });
+                    return interaction.editReply({ content: messages.commands.filter.wordAdded.replace('{word}', word) });
                 }
                 
                 if (subcommand === 'remove') {
                     if (!settings.custom_blocked_words.includes(word)) {
-                        return interaction.editReply({ content: `⚠️ **${word}** yasaklı kelimeler listesinde bulunamadı.` });
+                        return interaction.editReply({ content: messages.commands.filter.wordNotFound.replace('{word}', word) });
                     }
                     settings.custom_blocked_words = settings.custom_blocked_words.filter(w => w !== word);
                     await settings.save();
                     updateSettingsCache(interaction.guildId, settings);
-                    return interaction.editReply({ content: `✅ **${word}** başarıyla yasaklı kelimeler listesinden çıkarıldı.` });
+                    return interaction.editReply({ content: messages.commands.filter.wordRemoved.replace('{word}', word) });
                 }
             }
 
@@ -79,28 +80,28 @@ module.exports = {
                 
                 if (subcommand === 'add') {
                     if (settings.filter_bypass_roles.includes(role.id)) {
-                        return interaction.editReply({ content: `⚠️ ${role} zaten muaf roller listesinde.` });
+                        return interaction.editReply({ content: messages.commands.filter.roleAlreadyBypass.replace('{role}', role) });
                     }
                     settings.filter_bypass_roles.push(role.id);
                     await settings.save();
                     updateSettingsCache(interaction.guildId, settings);
-                    return interaction.editReply({ content: `✅ ${role} rolü filtreden **muaf** tutuldu.` });
+                    return interaction.editReply({ content: messages.commands.filter.roleBypassAdded.replace('{role}', role) });
                 }
                 
                 if (subcommand === 'remove') {
                     if (!settings.filter_bypass_roles.includes(role.id)) {
-                        return interaction.editReply({ content: `⚠️ ${role} muaf roller listesinde bulunamadı.` });
+                        return interaction.editReply({ content: messages.commands.filter.roleBypassNotFound.replace('{role}', role) });
                     }
                     settings.filter_bypass_roles = settings.filter_bypass_roles.filter(r => r !== role.id);
                     await settings.save();
                     updateSettingsCache(interaction.guildId, settings);
-                    return interaction.editReply({ content: `✅ ${role} rolü muafiyet listesinden çıkarıldı.` });
+                    return interaction.editReply({ content: messages.commands.filter.roleBypassRemoved.replace('{role}', role) });
                 }
             }
 
         } catch (error) {
             console.error('Filter komutu hatası:', error);
-            await interaction.editReply({ content: 'Veritabanı işlemi sırasında hata oluştu.' });
+            await interaction.editReply({ content: messages.errors.databaseError });
         }
     }
 };

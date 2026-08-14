@@ -1,5 +1,6 @@
 const { Events, EmbedBuilder } = require('discord.js');
 const { getSettings } = require('../../utils/cacheManager');
+const messages = require('../../messages.json');
 const { addToQueue } = require('../../utils/actionQueue');
 
 module.exports = {
@@ -11,10 +12,10 @@ module.exports = {
 
             // Panic Mode kontrolü: Aktifse sorgusuz sualsiz kick at
             if (settings.panicMode) {
-                addToQueue(async () => {
-                    await member.kick('Guard Bot: Panic Mode aktif! Sunucu kilitlendi.').catch(() => null);
-                });
-                return;
+                if (settings.panic_mode) {
+                    await member.kick(messages.events.antiRaid.panicKickReason).catch(() => null);
+                    return;
+                }return;
             }
 
             if (!settings.antiRaid) return;
@@ -30,41 +31,33 @@ module.exports = {
             // Eğer hesap belirlenen günden daha yeniyse
             if (ageInDays < requiredDays) {
                 addToQueue(async () => {
-                    let actionTaken = '';
-
-                    // Jail rolü varsa jail at, yoksa kick at
-                    if (settings.jail_role) {
+                    let actionTaken = 'Bilinmiyor';
+                    if (settings.anti_raid_action === 'jail' && settings.jail_role) {
                         const jailRole = member.guild.roles.cache.get(settings.jail_role);
-                        if (jailRole && jailRole.position < member.guild.members.me.roles.highest.position) {
-                            await member.roles.add(jailRole, 'Guard Bot: Anti-Raid koruması (Hesap çok yeni)').catch(() => null);
-                            actionTaken = 'Karantinaya (Jail) Alındı';
-                        } else {
-                            await member.kick('Guard Bot: Anti-Raid koruması (Hesap çok yeni)').catch(() => null);
-                            actionTaken = 'Sunucudan Atıldı (Kick)';
+                        if (jailRole) {
+                            await member.roles.add(jailRole, messages.events.antiRaid.punishReason).catch(() => null);
+                            actionTaken = messages.events.antiRaid.actionJail;
                         }
-                    } else {
-                        await member.kick('Guard Bot: Anti-Raid koruması (Hesap çok yeni)').catch(() => null);
-                        actionTaken = 'Sunucudan Atıldı (Kick)';
+                    } else if (settings.anti_raid_action === 'kick') {
+                        await member.kick(messages.events.antiRaid.punishReason).catch(() => null);
+                        actionTaken = messages.events.antiRaid.actionKick;
                     }
 
-                    // Log gönder
-                    if (settings.guard_log_channel) {
-                        const logChannel = member.guild.channels.cache.get(settings.guard_log_channel);
-                        if (logChannel && logChannel.isTextBased()) {
-                            const embed = new EmbedBuilder()
-                                .setTitle('🛡️ Güvenlik İhlali: Anti-Raid')
-                                .setColor('Red')
-                                .setDescription('Yeni açılan bir hesap sunucuya girmeye çalıştı ve güvenlik amacıyla engellendi!')
-                                .addFields(
-                                    { name: 'Kullanıcı', value: `<@${member.user.id}> (\`${member.user.id}\`)`, inline: true },
-                                    { name: 'Hesap Kuruluş', value: `<t:${Math.floor(accountCreatedAt.getTime() / 1000)}:R>`, inline: true },
-                                    { name: 'Uygulanan İşlem', value: actionTaken, inline: true }
-                                )
-                                .setTimestamp()
-                                .setFooter({ text: 'Guard Bot Sistem Koruması' });
-
-                            await logChannel.send({ embeds: [embed] }).catch(() => null);
-                        }
+                    const logChannel = member.guild.channels.cache.get(settings.guard_log_channel);
+                    if (logChannel) {
+                        const embed = new EmbedBuilder()
+                            .setTitle(messages.events.antiRaid.embedTitle)
+                            .setColor(messages.events.antiRaid.embedColor)
+                            .setDescription(messages.events.antiRaid.embedDesc)
+                            .addFields(
+                                { name: messages.events.antiRaid.fieldUser, value: `<@${member.id}> (\`${member.id}\`)`, inline: true },
+                                { name: messages.events.antiRaid.fieldCreatedAt, value: `<t:${Math.floor(member.user.createdTimestamp / 1000)}:R>`, inline: true },
+                                { name: messages.events.antiRaid.fieldAction, value: actionTaken, inline: false }
+                            )
+                            .setTimestamp()
+                            .setFooter({ text: messages.guardHelper.logFooter });
+                        
+                        await logChannel.send({ embeds: [embed] }).catch(() => null);
                     }
                 });
             }

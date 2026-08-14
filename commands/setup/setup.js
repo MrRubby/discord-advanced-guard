@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, PermissionFlagsBits, ChannelType } = require('discord.js');
 const GuildSettings = require('../../database/models/GuildSettings');
+const messages = require('../../messages.json');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -14,9 +15,8 @@ module.exports = {
         .addChannelOption(option => option.setName('log_channel').setDescription('Koruma loglarının düşeceği kanal').addChannelTypes(ChannelType.GuildText)),
         
     async execute(interaction) {
-        // Sunucu sahibi kontrolü
         if (interaction.user.id !== interaction.guild.ownerId) {
-            return interaction.reply({ content: '❌ Bu komutu sadece **Sunucu Sahibi** kullanabilir!', ephemeral: true });
+            return interaction.reply({ content: messages.errors.onlyOwner, ephemeral: true });
         }
 
         await interaction.deferReply({ ephemeral: true });
@@ -49,19 +49,19 @@ module.exports = {
             await settings.save();
             updateSettingsCache(interaction.guildId, settings); // Cache Güncelle
 
-            let responseText = '✅ **Sunucu koruma ve moderasyon ayarları başarıyla güncellendi!**\n\n**Güncel Ayarlar:**\n';
-            responseText += `- Ban Yetkili Rolü: ${settings.ban_auth_role ? `<@&${settings.ban_auth_role}>` : 'Ayarlandı değil'}\n`;
-            responseText += `- Kick Yetkili Rolü: ${settings.kick_auth_role ? `<@&${settings.kick_auth_role}>` : 'Ayarlandı değil'}\n`;
-            responseText += `- Jail Yetkili Rolü: ${settings.jail_auth_role ? `<@&${settings.jail_auth_role}>` : 'Ayarlandı değil'}\n`;
-            responseText += `- Mute Yetkili Rolü: ${settings.muter_auth_role ? `<@&${settings.muter_auth_role}>` : 'Ayarlandı değil'}\n`;
-            responseText += `- Jail (Mahkum) Rolü: ${settings.jail_role ? `<@&${settings.jail_role}>` : 'Ayarlandı değil'}\n`;
-            responseText += `- Log Kanalı: ${settings.guard_log_channel ? `<#${settings.guard_log_channel}>` : 'Ayarlandı değil'}\n`;
+            let responseText = messages.commands.setup.successTitle;
+            responseText += `${messages.commands.setup.banRole}${settings.ban_auth_role ? `<@&${settings.ban_auth_role}>` : messages.commands.setup.notSet}\n`;
+            responseText += `${messages.commands.setup.kickRole}${settings.kick_auth_role ? `<@&${settings.kick_auth_role}>` : messages.commands.setup.notSet}\n`;
+            responseText += `${messages.commands.setup.jailAuthRole}${settings.jail_auth_role ? `<@&${settings.jail_auth_role}>` : messages.commands.setup.notSet}\n`;
+            responseText += `${messages.commands.setup.muteRole}${settings.muter_auth_role ? `<@&${settings.muter_auth_role}>` : messages.commands.setup.notSet}\n`;
+            responseText += `${messages.commands.setup.jailRole}${settings.jail_role ? `<@&${settings.jail_role}>` : messages.commands.setup.notSet}\n`;
+            responseText += `${messages.commands.setup.logChannel}${settings.guard_log_channel ? `<#${settings.guard_log_channel}>` : messages.commands.setup.notSet}\n`;
 
             await interaction.editReply({ content: responseText });
 
         } catch (error) {
             console.error('Setup komutu hatası:', error);
-            await interaction.editReply({ content: 'Ayarlar kaydedilirken bir veritabanı hatası oluştu.' });
+            await interaction.editReply({ content: messages.errors.databaseError });
         }
     },
 };
